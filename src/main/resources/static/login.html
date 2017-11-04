@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>登录</title>
+</head>
+<body>
+userName:<input type="text" id="userName">
+<input type="submit" value="login" onclick="login()">
+</body>
+<script src="./js/jquery-2.2.3.min.js"></script>
+
+<script type="text/javascript">
+    function login() {
+        $.ajax({
+            type: 'POST',
+            url: '/chat/login',
+            data: JSON.stringify($('#userName').val()),
+            dataType: "json",
+            contentType: "application/json",
+            success: function (userName) {
+                window.location.href = 'chat.html?userName=' + userName;
+            },
+            error: function () {
+                alert('操作失败');
+            }
+        });
+    }
+</script>
+</html>

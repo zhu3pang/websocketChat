@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>在线聊天</title>
+</head>
+<body>
+<div id="container" style="border:1px solid black;width:400px;height:400px;float:left;">
+    <div id="content" style="height:350px;">
+
+    </div>
+    <div style="border-top:1px solid black;width:400px;height:400px;">
+        <input style="width: 300px;" id="msg"/>
+        <button onclick="send();">send</button>
+    </div>
+</div>
+<div id="userList" style="border:1px solid black;width:100px;height:400px;float:left;">
+
+</div>
+</body>
+<script src="./js/jquery-2.2.3.min.js"></script>
+
+<script type="text/javascript">
+    let userName = getParam('userName');
+    $('title').append(' [' + userName + ']');
+
+    let webSocketUrl = 'ws://' + window.location.host + '/websocket?userName=' + userName;
+    let webSocket = new WebSocket(webSocketUrl);
+
+    webSocket.onmessage = function (event) {
+        let msg = JSON.parse(event.data);
+        console.log(msg);
+        if (msg.content) {
+            if ('002' === msg.messageType.typeCode) {
+                if (userName !== msg.sender) {
+                    alert(msg.content);
+                }
+            } else {
+                $('#content').append(msg.content);
+            }
+        }
+        if (msg.onlineUsers) {
+            $('#userList').html('[在线用户]</br>');
+            msg.onlineUsers
+                .filter(name => name !== userName)
+                .map(name => "<input type='checkbox' value='" + name + "'/>" + name + "<br/>")
+                .forEach(tag => $('#userList').append(tag));
+        }
+    };
+
+    webSocket.onclose = function (event) {
+        console.log(event);
+        window.location.href = 'login.html';
+    };
+
+    webSocket.onerror = function (event) {
+        console.log(event);
+        reconnect(webSocketUrl);
+    };
+
+    /**
+     * 发送消息
+     */
+    function send() {
+        let receivers = $.makeArray($('#userList').find("input:checkbox:checked")).map(tag => $(tag).val());
+        receivers.push(userName);
+        console.log(receivers);
+        let message = {
+            'sender': userName,
+            'content': $('#msg').val(),
+            'receivers': receivers
+        };
+
+        webSocket.send(JSON.stringify(message));
+        //清空输入框
+        $('#msg').val('');
+    }
+
+    /**
+     * 重新连接websocket
+     * @param url
+     */
+    function reconnect(url) {
+        //没连接上会一直重连，设置延迟避免请求过多
+        setTimeout(function () {
+            webSocket = new WebSocket(url);
+        }, 2000);
+    }
+
+    function getParam(p) {
+        let pp = '';
+        let s = window.location.search.substr(1).replace(/#/g, '');
+
+        if (s.indexOf("&") != -1) {
+            let params = s.split("&");
+            $.each(params, function (i, val) {
+                if (val.indexOf(p) != -1) {
+                    pp = val.split("=")[1];
+                }
+            });
+        } else {
+            if (s.indexOf(p) != -1) {
+                pp = s.split("=")[1];
+                return pp;
+            }
+        }
+        return pp;
+    }
+</script>
+</html>
